@@ -1,5 +1,6 @@
 package org.example.notificationservice.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.example.notificationservice.exception.EmailSendingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,6 +9,8 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -21,6 +24,8 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
+    @CircuitBreaker(name = "notificationService", fallbackMethod = "sendEmailFallback")
+    @Retryable(value = {MailException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public void sendEmail(String to, String subject, String text) {
         try {
             logger.info("🚀 ATTEMPTING TO SEND EMAIL - To: {}, Subject: {}", to, subject);
@@ -46,6 +51,13 @@ public class EmailService {
         }
     }
 
+    public void sendEmailFallback(String to, String subject, String text, Throwable throwable) {
+        logger.error("🎯 FALLBACK: Email sending failed for: {}, Error: {}", to, throwable.getMessage());
+
+        throw new EmailSendingException("Email service is temporarily unavailable. Please try again later.");
+    }
+
+    @CircuitBreaker(name = "notificationService")
     public void sendUserCreatedEmail(String email) {
 
         String subject = "Добро пожаловать на наш сайт!";
@@ -53,6 +65,7 @@ public class EmailService {
         sendEmail(email, subject, message);
     }
 
+    @CircuitBreaker(name = "notificationService")
     public void sendUserDeletedEmail(String email) {
 
         String subject = "Информация о вашем аккаунте";

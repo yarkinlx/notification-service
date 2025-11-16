@@ -1,24 +1,28 @@
 package org.example.notificationservice.controller;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.example.notificationservice.controller.dto.ApiResponse;
 import org.example.notificationservice.controller.dto.NotificationRequest;
 import org.example.notificationservice.controller.dto.UserNotificationRequest;
 import org.example.notificationservice.service.NotificationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/notifications")
 @Validated
-@Slf4j
-@RequiredArgsConstructor
 public class NotificationController {
 
+    private static final Logger log = LoggerFactory.getLogger(NotificationController.class);
     private final NotificationService notificationService;
+
+    public NotificationController(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
 
     @PostMapping("/send")
     public ResponseEntity<ApiResponse> sendNotification(@Valid @RequestBody NotificationRequest request) {
